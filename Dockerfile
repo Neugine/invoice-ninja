@@ -1,6 +1,9 @@
 # Use the official Invoice Ninja image as base
 FROM invoiceninja/invoiceninja:latest
 
+# Switch to root to modify PHP configuration
+USER root
+
 # Set working directory
 WORKDIR /var/www/app
 
@@ -10,6 +13,9 @@ RUN echo "memory_limit = 512M" > /usr/local/etc/php/conf.d/memory-limit.ini && \
     echo "upload_max_filesize = 100M" >> /usr/local/etc/php/conf.d/memory-limit.ini && \
     echo "post_max_size = 100M" >> /usr/local/etc/php/conf.d/memory-limit.ini && \
     echo "max_execution_time = 300" >> /usr/local/etc/php/conf.d/memory-limit.ini
+
+# Switch back to the original user
+USER www-data
 
 # Set default environment variables for PHP
 ENV PHP_MEMORY_LIMIT=512M \
