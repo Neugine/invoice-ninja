@@ -89,7 +89,11 @@ This repository contains the configuration files needed to deploy Invoice Ninja 
 ## Configuration Files
 
 ### `Dockerfile`
-Uses the official Invoice Ninja Docker image and exposes port 9000.
+Uses the official Invoice Ninja Docker image with custom PHP configuration:
+- Increased PHP memory limit to 512M (prevents initialization errors)
+- Upload limit set to 100M for large file handling
+- Extended execution timeout for long-running operations
+- Exposes port 9000 for the application
 
 ### `railway.toml`
 Config-as-code file that defines:
@@ -120,6 +124,9 @@ The following environment variables are configured in `railway.toml`:
 | `DB_PASSWORD` | Database password | Auto-set from MySQL service |
 | `DB_STRICT` | Strict SQL mode | `false` |
 | `REQUIRE_HTTPS` | Force HTTPS | `true` |
+| `PHP_MEMORY_LIMIT` | PHP memory limit | `512M` |
+| `PHP_UPLOAD_MAX_FILESIZE` | Maximum upload file size | `100M` |
+| `PHP_POST_MAX_SIZE` | Maximum POST request size | `100M` |
 
 ## Important Notes
 
@@ -138,6 +145,17 @@ The following environment variables are configured in `railway.toml`:
 
 ## Troubleshooting
 
+### PHP Memory Exhausted Error
+If you see errors like `PHP Fatal error: Allowed memory size of 134217728 bytes exhausted`:
+- The Dockerfile is already configured with 512M memory limit
+- If still experiencing issues, you can increase it further in Railway dashboard:
+  - Go to Variables
+  - Update `PHP_MEMORY_LIMIT` to `1024M` or higher
+- Alternatively, edit `Dockerfile` and rebuild:
+  ```dockerfile
+  RUN echo "memory_limit = 1024M" > /usr/local/etc/php/conf.d/memory-limit.ini
+  ```
+
 ### Database Connection Issues
 - Verify that the MySQL service is running
 - Check that the environment variables are correctly referencing the MySQL service
@@ -150,6 +168,12 @@ The following environment variables are configured in `railway.toml`:
 ### Port Issues
 - Railway automatically assigns ports, you don't need to configure them manually
 - The application listens on port 9000 internally
+
+### Container Restart Loop
+- Check Railway logs for specific errors
+- Verify all environment variables are set correctly
+- Ensure MySQL service is healthy and accessible
+- Check that APP_KEY is properly formatted (should start with `base64:`)
 
 ## Running Locally
 

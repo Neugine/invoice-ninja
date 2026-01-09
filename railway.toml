@@ -70,6 +70,19 @@ value = "false"
 name = "REQUIRE_HTTPS"
 value = "true"
 
+# PHP Configuration - Increase memory limits
+[[services.env]]
+name = "PHP_MEMORY_LIMIT"
+value = "512M"
+
+[[services.env]]
+name = "PHP_UPLOAD_MAX_FILESIZE"
+value = "100M"
+
+[[services.env]]
+name = "PHP_POST_MAX_SIZE"
+value = "100M"
+
 # MySQL Service
 [[services]]
 name = "MySQL"
