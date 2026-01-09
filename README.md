@@ -11,39 +11,39 @@ This repository contains the configuration files needed to deploy Invoice Ninja 
 
 ### Method 1: Deploy via Railway Dashboard (Recommended)
 
-1. **Create a new project on Railway**
-   - Go to [railway.app](https://railway.app)
-   - Click "New Project"
-   - Select "Deploy from GitHub repo"
-   - Connect this repository
+**IMPORTANT: Create MySQL FIRST, then deploy Invoice Ninja**
 
-2. **Add MySQL Database**
-   - Railway will automatically detect the `railway.toml` file
-   - The MySQL service will be created automatically
-   - If not, click "+ New" and add "MySQL"
+1. **Create MySQL Database First**
+   - Go to [railway.app](https://railway.app)
+   - Click "New Project" → "Provision MySQL"
+   - Wait for MySQL to be ready
+   - Note: Railway handles volumes automatically, no setup needed
+
+2. **Deploy Invoice Ninja**
+   - In the same project, click "+ New" → "GitHub Repo"
+   - Connect this repository
+   - Railway will auto-detect `railway.toml` and build
 
 3. **Generate APP_KEY**
-
-   Before deployment, you need to generate an application key. Run this command locally:
    ```bash
-   docker run --rm invoiceninja/invoiceninja php artisan key:generate --show
+   docker run --rm invoiceninja/invoiceninja:5 php artisan key:generate --show
    ```
+   Copy the key (looks like `base64:xxxxx...`)
 
-   Copy the generated key (it will look like `base64:xxxxx...`)
+4. **Configure Variables**
+   - Click on Invoice Ninja service → "Variables"
+   - Set `APP_KEY` to the key you generated
+   - Verify database variables are linked to MySQL service:
+     - `DB_HOST=${{ MySQL.RAILWAY_PRIVATE_DOMAIN }}`
+     - `DB_PORT=${{ MySQL.PORT }}`
+     - `DB_DATABASE=${{ MySQL.MYSQLDATABASE }}`
+     - `DB_USERNAME=${{ MySQL.MYSQLUSER }}`
+     - `DB_PASSWORD=${{ MySQL.MYSQLPASSWORD }}`
 
-4. **Update Environment Variables**
-   - Go to your Invoice Ninja service in Railway
-   - Click on "Variables"
-   - Update `APP_KEY` with the key you generated above
-   - Update `APP_URL` if needed (Railway will set this automatically to your public domain)
-
-5. **Deploy**
-   - Railway will automatically build and deploy your application
-   - Wait for the build to complete
-
-6. **Access Your Instance**
-   - Once deployed, Railway will provide you with a public URL
-   - Visit the URL to complete the Invoice Ninja setup wizard
+5. **Deploy & Access**
+   - Railway will build and deploy automatically
+   - Click "Settings" → "Generate Domain" to get a public URL
+   - Visit the URL to complete Invoice Ninja setup
 
 ### Method 2: Deploy via Railway CLI
 
@@ -89,11 +89,11 @@ This repository contains the configuration files needed to deploy Invoice Ninja 
 ## Configuration Files
 
 ### `Dockerfile`
-Uses the official Invoice Ninja Docker image with custom PHP configuration:
-- Increased PHP memory limit to 512M (prevents initialization errors)
-- Upload limit set to 100M for large file handling
-- Extended execution timeout for long-running operations
-- Exposes port 9000 for the application
+Uses the official Invoice Ninja v5 image with nginx reverse proxy:
+- Installs nginx for serving the application
+- Configures nginx to proxy to PHP-FPM
+- Custom startup script handles initialization
+- Exposes port 80 for HTTP traffic
 
 ### `railway.toml`
 Config-as-code file that defines:
@@ -124,9 +124,6 @@ The following environment variables are configured in `railway.toml`:
 | `DB_PASSWORD` | Database password | Auto-set from MySQL service |
 | `DB_STRICT` | Strict SQL mode | `false` |
 | `REQUIRE_HTTPS` | Force HTTPS | `true` |
-| `PHP_MEMORY_LIMIT` | PHP memory limit | `512M` |
-| `PHP_UPLOAD_MAX_FILESIZE` | Maximum upload file size | `100M` |
-| `PHP_POST_MAX_SIZE` | Maximum POST request size | `100M` |
 
 ## Important Notes
 
@@ -145,17 +142,6 @@ The following environment variables are configured in `railway.toml`:
 
 ## Troubleshooting
 
-### PHP Memory Exhausted Error
-If you see errors like `PHP Fatal error: Allowed memory size of 134217728 bytes exhausted`:
-- The Dockerfile is already configured with 512M memory limit
-- If still experiencing issues, you can increase it further in Railway dashboard:
-  - Go to Variables
-  - Update `PHP_MEMORY_LIMIT` to `1024M` or higher
-- Alternatively, edit `Dockerfile` and rebuild:
-  ```dockerfile
-  RUN echo "memory_limit = 1024M" > /usr/local/etc/php/conf.d/memory-limit.ini
-  ```
-
 ### Database Connection Issues
 - Verify that the MySQL service is running
 - Check that the environment variables are correctly referencing the MySQL service
@@ -166,8 +152,8 @@ If you see errors like `PHP Fatal error: Allowed memory size of 134217728 bytes 
 - Set it in Railway: `railway variables set APP_KEY="your-generated-key"`
 
 ### Port Issues
-- Railway automatically assigns ports, you don't need to configure them manually
-- The application listens on port 9000 internally
+- The application listens on port 80 (nginx handles requests)
+- Railway automatically maps this to a public URL
 
 ### Container Restart Loop
 - Check Railway logs for specific errors
